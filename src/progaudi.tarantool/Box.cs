@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using ProGaudi.Tarantool.Client.Model;
 using ProGaudi.Tarantool.Client.Model.Requests;
@@ -150,18 +151,18 @@ namespace ProGaudi.Tarantool.Client
             return Eval<TarantoolTuple, TResponse>(expression, TarantoolTuple.Empty);
         }
 
-        public Task<DataResponse> ExecuteSql(string query, params SqlParameter[] parameters)
+        public Task<DataResponse> ExecuteSql(string query, TimeSpan? timeout, params SqlParameter[] parameters)
         {
             if (!_sqlReady) throw ExceptionHelper.SqlIsNotAvailable(Info.Version);
 
-            return _logicalConnection.SendRequest(new ExecuteSqlRequest(query, parameters));
+            return _logicalConnection.SendRequest(new ExecuteSqlRequest(query, parameters), timeout);
         }
 
-        public Task<DataResponse<TResponse[]>> ExecuteSql<TResponse>(string query, params SqlParameter[] parameters)
+        public Task<DataResponse<TResponse[]>> ExecuteSql<TResponse>(string query, TimeSpan? timeout, params SqlParameter[] parameters)
         {
             if (!_sqlReady) throw ExceptionHelper.SqlIsNotAvailable(Info.Version);
 
-            return _logicalConnection.SendRequest<ExecuteSqlRequest, TResponse>(new ExecuteSqlRequest(query, parameters));
+            return _logicalConnection.SendRequest<ExecuteSqlRequest, TResponse>(new ExecuteSqlRequest(query, parameters), timeout);
         }
     }
 }

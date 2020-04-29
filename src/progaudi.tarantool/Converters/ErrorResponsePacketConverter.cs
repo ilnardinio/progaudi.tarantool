@@ -29,19 +29,20 @@ namespace ProGaudi.Tarantool.Client.Converters
             string errorMessage = null;
             var length = reader.ReadMapLength();
 
-            if (length != 1u)
+            for (int i = 0; i < length.Value; i++)
             {
-                throw ExceptionHelper.InvalidMapLength(length, 1u);
+                var key = _keyConverter.Read(reader);
+
+                switch (key)
+                {
+                    case Key.Error:
+                        errorMessage = _stringConverter.Read(reader);
+                        break;
+                    default:
+                        reader.SkipToken();
+                        break;
+                }
             }
-
-            var errorKey = _keyConverter.Read(reader);
-            if (errorKey != Key.Error)
-            {
-                throw ExceptionHelper.UnexpectedKey(errorKey, Key.Error);
-            }
-
-            errorMessage = _stringConverter.Read(reader);
-
             return new ErrorResponse(errorMessage);
         }
     }

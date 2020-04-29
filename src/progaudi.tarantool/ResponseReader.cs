@@ -219,22 +219,29 @@ namespace ProGaudi.Tarantool.Client
             var header= MsgPackSerializer.Deserialize<ResponseHeader>(resultStream, _clientOptions.MsgPackContext);
             var tcs = PopResponseCompletionSource(header.RequestId);
 
-            if (tcs == null)
+            try
             {
-                if (_clientOptions.LogWriter != null)
-                    LogUnMatchedResponse(result, _clientOptions.LogWriter);
-                return;
-            }
+                if (tcs == null)
+                {
+                    if (_clientOptions.LogWriter != null)
+                        LogUnMatchedResponse(result, _clientOptions.LogWriter);
+                    return;
+                }
 
-            if ((header.Code & CommandCode.ErrorMask) == CommandCode.ErrorMask)
-            {
-                var errorResponse = MsgPackSerializer.Deserialize<ErrorResponse>(resultStream, _clientOptions.MsgPackContext);
-                tcs.SetException(ExceptionHelper.TarantoolError(header, errorResponse));
+                if ((header.Code & CommandCode.ErrorMask) == CommandCode.ErrorMask)
+                {
+                    var errorResponse = MsgPackSerializer.Deserialize<ErrorResponse>(resultStream, _clientOptions.MsgPackContext);
+                    Task.Run(() => tcs.SetException(ExceptionHelper.TarantoolError(header, errorResponse)));
+                }
+                else
+                {
+                    _clientOptions.LogWriter?.WriteLine($"Match for request with id {header.RequestId} found.");
+                    Task.Run(() => tcs.SetResult(resultStream));
+                }
             }
-            else
+            catch (Exception ex)
             {
-                _clientOptions.LogWriter?.WriteLine($"Match for request with id {header.RequestId} found.");
-                Task.Run(() => tcs.SetResult(resultStream));
+                Task.Run(() => tcs.SetException(ex));
             }
         }
 
